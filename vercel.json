@@ -1,13 +1,18 @@
 {
-  "version": 2,
-  "name": "mus-project",
-  "builds": [
-    { "src": "drug-recognition-demo/index.html", "use": "@vercel/static" }
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://mus-project.onrender.com/api/:path*" },
+    { "source": "/images/:path*", "destination": "https://mus-project.onrender.com/images/:path*" }
   ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "https://mus-project.onrender.com/api/$1" },
-    { "src": "/images/(.*)", "dest": "https://mus-project.onrender.com/images/$1" },
-    { "src": "/(robots.txt|sitemap.xml)", "dest": "/$1" },
-    { "src": "/(.*)", "dest": "/drug-recognition-demo/index.html" }
+  "redirects": [
+    { "source": "/", "destination": "/drug-recognition-demo/index.html", "permanent": false }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    }
   ]
 }
