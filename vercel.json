@@ -1,4 +1,6 @@
-{
+﻿{
+  "buildCommand": null,
+  "framework": null,
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://mus-project.onrender.com/api/:path*" },
     { "source": "/images/:path*", "destination": "https://mus-project.onrender.com/images/:path*" }

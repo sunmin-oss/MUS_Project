@@ -1,0 +1,22 @@
+# Vercel 部署設定：告訴 Vercel 忽略 Python 後端檔案，只部署靜態前端
+
+# 排除所有 Python 後端檔案
+*.py
+requirements.txt
+drug_recognition.db
+medicine_photos/
+medicine_data.csv
+
+# 排除文件與資料夾
+參考資料/
+*.md
+!README.md
+*.txt
+!robots.txt
+*.pdf
+
+# 只包含前端必要檔案
+# - index.html（根目錄）
+# - vercel.json（部署配置）
+# - robots.txt（SEO）
+# - sitemap.xml（SEO）
