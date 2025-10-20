@@ -103,13 +103,16 @@ def sitemap_xml():
 
 if __name__ == "__main__":
     print("啟動 Flask 伺服器...")
-    print("測試資料庫連線...")
-    with DrugDatabase(DB_PATH) as db:
-        test_results = db.search_by_name("建功丸")
-        print(f"測試查詢: 找到 {len(test_results)} 筆建功丸資料")
-        if len(test_results) > 0:
-            test_images = db.get_drug_images(test_results[0]["id"])
-            print(f"測試圖片: 建功丸有 {len(test_images)} 張圖片")
+    # 若資料庫不存在，嘗試以 CSV 初始化（Render 首次部署常見情境）
+    if not os.path.exists(DB_PATH):
+        try:
+            print(f"偵測不到資料庫 {DB_PATH}，嘗試初始化...")
+            from create_database import main as init_db
+
+            init_db()
+            print("資料庫初始化完成。")
+        except Exception as e:
+            print(f"初始化資料庫失敗（將以空資料庫啟動）：{e}")
 
     # 對外提供服務請使用 0.0.0.0；Render 會提供 PORT 環境變數
     port = int(os.environ.get("PORT", 3000))
