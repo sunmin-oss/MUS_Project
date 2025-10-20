@@ -327,6 +327,8 @@
 
     <script>
         const { createApp } = Vue
+        // 直接呼叫 Render 後端，避免經由 Vercel 代理造成 504 逾時
+        const API_BASE = 'https://mus-project.onrender.com'
 
         createApp({
             data() {
@@ -419,7 +421,7 @@
                         }
                         // 呼叫後端 API
                         try {
-                            const res = await fetch(`/api/search/name?q=${encodeURIComponent(queryStr)}`)
+                            const res = await fetch(`${API_BASE}/api/search/name?q=${encodeURIComponent(queryStr)}`)
                             const data = await res.json()
                             if (data.success) {
                                 // 將 API 回傳資料轉換為前端顯示格式
@@ -427,7 +429,7 @@
                                     // 取第一張圖片
                                     let imageUrl = ''
                                     if (drug.images && drug.images.length > 0) {
-                                        imageUrl = `/images/${drug.images[0].image_filename}`
+                                        imageUrl = `${API_BASE}/images/${drug.images[0].image_filename}`
                                     }
                                     return {
                                         id: drug.id,
