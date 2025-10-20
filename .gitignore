@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+
+# Environments
+.env
+.venv/
+venv/
+env/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Builds
+build/
+dist/
+**/bin/
+**/obj/
+
+# Databases & caches
+*.db
+*.sqlite
+*.sqlite3
+
+# Local data & images
+medicine_photos/
+IMG_*.jpeg
+
+# Logs
+*.log
+
+# Frontend caches
+.dr-cache/
+.cache/
