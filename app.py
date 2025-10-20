@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request, send_from_directory
+import os
 from database_query import DrugDatabase
 
 app = Flask(__name__)
@@ -80,6 +81,24 @@ def index():
     return send_from_directory("drug-recognition-demo", "index.html")
 
 
+# SEO/ops endpoints
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok"}), 200
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    # 專案根目錄的 robots.txt
+    return send_from_directory(".", "robots.txt", mimetype="text/plain")
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    # 專案根目錄的 sitemap.xml
+    return send_from_directory(".", "sitemap.xml", mimetype="application/xml")
+
+
 if __name__ == "__main__":
     print("啟動 Flask 伺服器...")
     print("測試資料庫連線...")
@@ -90,4 +109,5 @@ if __name__ == "__main__":
             test_images = db.get_drug_images(test_results[0]["id"])
             print(f"測試圖片: 建功丸有 {len(test_images)} 張圖片")
 
-    app.run(debug=True, use_reloader=False, host="127.0.0.1", port=3000)
+    # 對外提供服務請使用 0.0.0.0，並建議關閉 debug
+    app.run(debug=False, use_reloader=False, host="0.0.0.0", port=3000)
