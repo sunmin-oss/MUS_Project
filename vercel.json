@@ -5,8 +5,8 @@
     { "src": "drug-recognition-demo/index.html", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "https://YOUR-BACKEND-ON-RENDER.com/api/$1" },
-    { "src": "/images/(.*)", "dest": "https://YOUR-BACKEND-ON-RENDER.com/images/$1" },
+    { "src": "/api/(.*)", "dest": "https://mus-project.onrender.com/api/$1" },
+    { "src": "/images/(.*)", "dest": "https://mus-project.onrender.com/images/$1" },
     { "src": "/(robots.txt|sitemap.xml)", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/drug-recognition-demo/index.html" }
   ]
