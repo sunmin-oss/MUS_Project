@@ -1,8 +1,10 @@
 from flask import Flask, jsonify, request, send_from_directory
 import os
+from flask_cors import CORS
 from database_query import DrugDatabase
 
 app = Flask(__name__)
+CORS(app)  # 允許跨網域請求（供前端獨立部署時使用）
 DB_PATH = "drug_recognition.db"
 
 
@@ -109,5 +111,6 @@ if __name__ == "__main__":
             test_images = db.get_drug_images(test_results[0]["id"])
             print(f"測試圖片: 建功丸有 {len(test_images)} 張圖片")
 
-    # 對外提供服務請使用 0.0.0.0，並建議關閉 debug
-    app.run(debug=False, use_reloader=False, host="0.0.0.0", port=3000)
+    # 對外提供服務請使用 0.0.0.0；Render 會提供 PORT 環境變數
+    port = int(os.environ.get("PORT", 3000))
+    app.run(debug=False, use_reloader=False, host="0.0.0.0", port=port)
