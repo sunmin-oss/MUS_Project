@@ -88,7 +88,9 @@ python download_medicine_photos.py
 
 ---
 
-## 🚀 啟動後端與開啟前端
+## 🚀 啟動方式
+
+### 方法 1：本地網路啟動（同 WiFi 裝置可訪問）
 
 ```powershell
 # 確保位於專案根目錄
@@ -98,11 +100,26 @@ cd "d:\大學\專題\MUS_Project"
 python app.py
 ```
 
-啟動後瀏覽器開啟（本機開發）：
+啟動後：
 
-- 後端 API（本機）：[http://127.0.0.1:3000](http://127.0.0.1:3000)
-- 前端（線上正式站）：<https://mus-project.vercel.app/>
-- 前端（本機預覽，直接開啟 `index.html` 亦可；預設 API 指向雲端後端）
+- 本機訪問：[http://127.0.0.1:3000](http://127.0.0.1:3000)
+- 同 WiFi 裝置訪問：`http://192.168.1.104:3000`（請替換為您的內網 IP）
+
+### 方法 2：使用 ngrok（任何地方都能訪問）🌍 ⭐ 推薦
+
+讓您的系統可以從網路上任何地方訪問（手機、平板、其他網路）：
+
+```powershell
+# 一鍵啟動（會同時啟動 Flask 和 ngrok）
+.\start_with_ngrok.ps1
+```
+
+詳細設定請看：[📖 ngrok 快速指南](./QUICKSTART_NGROK.md)
+
+### 方法 3：線上部署版本
+
+- 前端（Vercel）：<https://mus-project.vercel.app/>
+- 後端 API（Render）：<https://mus-project.onrender.com>
 
 前端功能：
 
@@ -172,7 +189,17 @@ python app.py
 
 ---
 
-## 📌 後續規劃（建議）
+## � 相關文檔
+
+- [QUICKSTART_NGROK.md](./QUICKSTART_NGROK.md) - **ngrok 快速啟動指南（3 分鐘上手）**
+- [NGROK_SETUP.md](./NGROK_SETUP.md) - ngrok 完整設定教學與進階功能
+- [LOCAL_SERVER_SETUP.md](./LOCAL_SERVER_SETUP.md) - 本地伺服器設定指南（多種網路方案）
+- [MODELS_INTEGRATION.md](./MODELS_INTEGRATION.md) - 圖片辨識模型整合文件
+- [DATABASE_README.md](./DATABASE_README.md) - 資料庫結構說明
+
+---
+
+## �📌 後續規劃（建議）
 
 - 後端搜尋升級：`search_by_name` 支援多關鍵字 AND 模糊條件（API 端也能單獨達到高命中）
 - 新增 `/health` 健康檢查路由，方便監控與自動化
