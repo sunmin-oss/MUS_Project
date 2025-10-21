@@ -23,6 +23,15 @@
 - 後端：`Flask` 提供搜尋 API 與靜態頁面、圖片服務
 - 資料庫：`SQLite`，來源為 `medicine_data.csv`
 - 前端：單檔 `index.html`（位於專案根目錄），直接向後端 API 發請求
+- **圖片辨識**：基於 OpenCV 的影像特徵比對，識別藥物
+
+### ✨ 主要功能
+
+1. **藥物名稱搜尋**：支援中文拆詞模糊搜尋
+2. **藥物外觀搜尋**：依形狀、顏色等特徵搜尋
+3. **圖片辨識**：上傳藥物照片，自動識別並返回最相似藥物
+4. **藥物詳情**：顯示許可證字號、成分、外觀特徵、圖片等完整資訊
+- 前端：單檔 `index.html`（位於專案根目錄），直接向後端 API 發請求
 
 > 本專案已部署至 Vercel（前端）與 Render（後端）。若本機啟動 Flask，預設在 [http://127.0.0.1:3000](http://127.0.0.1:3000)
 
@@ -44,17 +53,17 @@
 ## ⚙️ 環境需求
 
 - Python 3.10 以上（Windows / PowerShell）
-- 套件：Flask
+- 套件：Flask, flask-cors, opencv-python, numpy
 
-安裝 Flask（PowerShell）
+安裝依賴套件（PowerShell）
 
 ```powershell
 # 建議使用虛擬環境（可選）
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 
-# 安裝 Flask
-pip install Flask
+# 安裝所有依賴
+pip install -r requirements.txt
 ```
 
 ---
@@ -99,6 +108,10 @@ python app.py
 
 - 首頁可輸入藥物名稱搜尋。已支援「連續字串自動拆詞」：
   - 輸入「福元蘇打錠500毫克」會自動拆成「福元 蘇打錠 500 毫克」提高命中率
+- **圖片辨識**：
+  - 點擊上傳區域選擇藥物照片
+  - 點擊「辨識藥物」進行自動識別
+  - 顯示最相似的藥物列表及相似度
 - 搜尋結果可點「查看詳情」進入詳情頁
 - 詳情頁顯示：許可證字號、中文/英文名、形狀、顏色、特殊劑型、特殊氣味、刻痕、外觀尺寸、圖片（如有）
 
@@ -118,11 +131,22 @@ python app.py
 - GET `/api/drug/<id>`
   - 取得單筆完整資訊（含 images）
 
+- **POST `/api/recognize`** ✨ 新功能
+  - 藥物圖片辨識 API
+  - 參數（multipart/form-data）：
+    - `image`：圖片檔案（必需，支援 png, jpg, jpeg, gif, bmp）
+    - `top_k`：返回前 K 個結果（選填，預設 5）
+    - `is_prescription`：是否為藥單模式（選填，預設 false）
+  - 回傳：`{ success, count, data: [ { ...drug_info, similarity, similarity_percent } ] }`
+
 - GET `/images/<filename>`
   - 提供圖片靜態檔（來源：`medicine_photos/`）
 
 - GET `/`
-  - 服務前端頁面 `drug-recognition-demo/index.html`
+  - 服務前端頁面 `index.html`
+
+- GET `/health`
+  - 健康檢查端點
 
 ---
 

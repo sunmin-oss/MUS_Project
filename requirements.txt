@@ -1,2 +1,7 @@
 Flask>=2.3,<3.0
 flask-cors>=4.0.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+# PaddleOCR (可選，用於文字辨識)
+# paddleocr>=2.7.0
+# paddlepaddle>=2.5.0

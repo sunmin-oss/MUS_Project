@@ -73,6 +73,23 @@
                         <h2 class="text-lg font-semibold">藥物圖片辨識</h2>
                     </div>
                     <div class="p-4">
+                        <!-- 辨識模式選擇 -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">辨識模式</label>
+                            <select v-model="recognitionMode" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-600">
+                                <option value="auto">🤖 自動判斷（推薦）</option>
+                                <option value="feature">🖼️ 影像特徵比對</option>
+                                <option value="ocr">📝 文字辨識 (OCR)</option>
+                                <option value="prescription">💊 藥單模式</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">
+                                <span v-if="recognitionMode === 'auto'">系統會自動選擇最適合的辨識方法</span>
+                                <span v-else-if="recognitionMode === 'feature'">適合單顆藥物清晰照片</span>
+                                <span v-else-if="recognitionMode === 'ocr'">適合藥袋、藥盒上的文字</span>
+                                <span v-else-if="recognitionMode === 'prescription'">適合處方籤、藥單</span>
+                            </p>
+                        </div>
+                        
                         <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 transition"
                             @click="triggerFileInput">
                             <div v-if="!previewImage">
@@ -337,6 +354,7 @@
                     searchQuery: '',
                     previewImage: null,
                     imageFile: null,
+                    recognitionMode: 'auto',  // 辨識模式: auto, feature, ocr, prescription
                     commonDrugs: ['阿斯匹靈', '布洛芬', '普拿疼', '安眠藥', '維他命C'],
                     recentSearches: [],
                     searchResults: [],
@@ -458,11 +476,77 @@
                         this.activePage = 'search'
                     }
                 },
-                identifyDrug() {
-                    if (this.previewImage) {
-                        // 在實際應用中,這裡會上傳圖片並發送API請求
-                        // 現在我們只是切換到辨識結果頁面
-                        this.activePage = 'recognition'
+                async identifyDrug() {
+                    if (!this.imageFile) {
+                        alert('請先選擇圖片')
+                        return
+                    }
+                    
+                    // 顯示載入中
+                    const loadingMsg = `辨識中（${this.recognitionMode === 'auto' ? '自動判斷' : this.recognitionMode}模式），請稍候...`
+                    console.log(loadingMsg)
+                    
+                    try {
+                        // 建立 FormData 上傳圖片
+                        const formData = new FormData()
+                        formData.append('image', this.imageFile)
+                        formData.append('top_k', '5')
+                        formData.append('model', this.recognitionMode)  // auto, feature, ocr, prescription
+                        
+                        // 呼叫辨識 API
+                        const res = await fetch(`${API_BASE}/api/recognize`, {
+                            method: 'POST',
+                            body: formData
+                        })
+                        
+                        const data = await res.json()
+                        
+                        if (data.success && data.data && data.data.length > 0) {
+                            // 轉換辨識結果為前端格式
+                            const bestMatch = data.data[0]
+                            const otherMatches = data.data.slice(1)
+                            
+                            // 構建最佳匹配
+                            this.recognitionResult.bestMatch = {
+                                id: bestMatch.id,
+                                name: bestMatch.chinese_name,
+                                englishName: bestMatch.english_name,
+                                license_number: bestMatch.license_number,
+                                shape: bestMatch.shape,
+                                color: bestMatch.color,
+                                special_dosage_form: bestMatch.special_dosage_form,
+                                imageUrl: bestMatch.images && bestMatch.images.length > 0 
+                                    ? `${API_BASE}/images/${bestMatch.images[0].image_filename}` 
+                                    : '',
+                                similarity: bestMatch.similarity_percent,
+                                method: data.method || '特徵比對'
+                            }
+                            
+                            // 構建其他匹配
+                            this.recognitionResult.otherMatches = otherMatches.map(match => ({
+                                id: match.id,
+                                name: match.chinese_name,
+                                englishName: match.english_name,
+                                license_number: match.license_number,
+                                shape: match.shape,
+                                color: match.color,
+                                imageUrl: match.images && match.images.length > 0 
+                                    ? `${API_BASE}/images/${match.images[0].image_filename}` 
+                                    : '',
+                                similarity: match.similarity_percent
+                            }))
+                            
+                            // 切換到辨識結果頁面
+                            this.activePage = 'recognition'
+                        } else if (data.success && data.matched_drugs) {
+                            // 藥單模式結果
+                            alert(`成功識別 ${data.matched_drugs_count} 個藥物！\n檢測到的文字：${data.detected_texts.map(t => t.text).join(', ')}`)
+                        } else {
+                            alert(data.message || '辨識失敗，請確保圖片清晰')
+                        }
+                    } catch (err) {
+                        console.error('辨識錯誤:', err)
+                        alert('辨識過程發生錯誤，請稍後再試')
                     }
                 },
                 viewDrugDetails(drug) {
