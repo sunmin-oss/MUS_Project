@@ -1,18 +1,18 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- 部署後請替換為你的實際公開網址 -->
   <url>
-    <loc>https://example.com/</loc>
+    <loc>https://mus-project.vercel.app/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://example.com/search</loc>
+    <loc>https://mus-project.vercel.app/search</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://example.com/recognition</loc>
+    <loc>https://mus-project.vercel.app/recognition</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
