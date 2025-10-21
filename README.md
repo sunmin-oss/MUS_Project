@@ -2,11 +2,15 @@
 
 一個以 Flask + SQLite 提供 API、前端使用單檔 Vue 3（CDN）+ Tailwind 的藥物查詢/辨識原型。
 
+【Live】網站：<https://mus-project.vercel.app/>
+
+【API】後端：<https://mus-project.onrender.com>
+
 - 後端：`Flask` 提供搜尋 API 與靜態頁面、圖片服務
 - 資料庫：`SQLite`，來源為 `medicine_data.csv`
-- 前端：單檔 `drug-recognition-demo/index.html`，直接向後端 API 發請求
+- 前端：單檔 `index.html`（位於專案根目錄），直接向後端 API 發請求
 
-> 預設啟動在 [http://127.0.0.1:3000](http://127.0.0.1:3000)
+> 本專案已部署至 Vercel（前端）與 Render（後端）。若本機啟動 Flask，預設在 [http://127.0.0.1:3000](http://127.0.0.1:3000)
 
 ---
 
@@ -16,7 +20,7 @@
 - `database_query.py`：資料庫查詢封裝（名稱/外觀特徵/圖片/統計）
 - `create_database.py`：建立/初始化 `drug_recognition.db`（由 `medicine_data.csv` 匯入）
 - `download_medicine_photos.py`：選用，下載藥物圖片至 `medicine_photos/`
-- `drug-recognition-demo/index.html`：前端頁面（Vue 3 + Tailwind）
+- `index.html`：前端頁面（Vue 3 + Tailwind；同一檔在 Vercel 以靜態網站部署）
 - `medicine_data.csv`：藥物原始資料（CSV）
 - `medicine_photos/`：藥物圖片（本機檔案夾；已在 .gitignore 排除）
 - `drug_recognition.db`：SQLite 資料庫檔（已在 .gitignore 排除）
@@ -71,9 +75,11 @@ cd "d:\大學\專題\MUS_Project"
 python app.py
 ```
 
-啟動後瀏覽器開啟：
+啟動後瀏覽器開啟（本機開發）：
 
-- 前端頁面：[http://127.0.0.1:3000](http://127.0.0.1:3000)
+- 後端 API（本機）：[http://127.0.0.1:3000](http://127.0.0.1:3000)
+- 前端（線上正式站）：<https://mus-project.vercel.app/>
+- 前端（本機預覽，直接開啟 `index.html` 亦可；預設 API 指向雲端後端）
 
 前端功能：
 
