@@ -1,10 +1,24 @@
 # 藥物辨識系統 MUS_Project
 
+[![Frontend](https://img.shields.io/badge/Frontend-Vercel-black?style=for-the-badge&logo=vercel)](https://mus-project.vercel.app/)
+[![Backend](https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge&logo=render)](https://mus-project.onrender.com)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![Vue.js](https://img.shields.io/badge/Vue.js-3.x-4FC08D?style=for-the-badge&logo=vue.js&logoColor=white)](https://vuejs.org/)
+
 一個以 Flask + SQLite 提供 API、前端使用單檔 Vue 3（CDN）+ Tailwind 的藥物查詢/辨識原型。
 
-【Live】網站：<https://mus-project.vercel.app/>
+## 🚀 線上連結
 
-【API】後端：<https://mus-project.onrender.com>
+- **網站**：<https://mus-project.vercel.app/>
+- **後端 API**：<https://mus-project.onrender.com>
+- **健康檢查**：<https://mus-project.onrender.com/health>
+
+---
+
+## 📋 專案介紹
+
+這是一個藥物辨識與查詢系統，整合以下技術：
 
 - 後端：`Flask` 提供搜尋 API 與靜態頁面、圖片服務
 - 資料庫：`SQLite`，來源為 `medicine_data.csv`
@@ -14,7 +28,7 @@
 
 ---
 
-## 目錄結構（重點）
+## 📂 目錄結構（重點）
 
 - `app.py`：Flask 入口，提供 API 與靜態檔案服務
 - `database_query.py`：資料庫查詢封裝（名稱/外觀特徵/圖片/統計）
@@ -27,7 +41,7 @@
 
 ---
 
-## 環境需求
+## ⚙️ 環境需求
 
 - Python 3.10 以上（Windows / PowerShell）
 - 套件：Flask
@@ -45,7 +59,7 @@ pip install Flask
 
 ---
 
-## 建立資料庫與圖片（首次執行）
+## 🗄️ 建立資料庫與圖片（首次執行）
 
 專案預設不將 SQLite 與大量圖片納入版本控制，首次請在專案根目錄建立：
 
@@ -65,7 +79,7 @@ python download_medicine_photos.py
 
 ---
 
-## 啟動後端與開啟前端
+## 🚀 啟動後端與開啟前端
 
 ```powershell
 # 確保位於專案根目錄
@@ -90,7 +104,7 @@ python app.py
 
 ---
 
-## API 速覽
+## 🔌 API 速覽
 
 - GET `/api/search/name`
   - Query：`q`（字串，支援模糊）、`limit`（預設 20）
@@ -112,7 +126,7 @@ python app.py
 
 ---
 
-## 常見問題（FAQ / Troubleshooting）
+## ❓ 常見問題（FAQ / Troubleshooting）
 
 - 啟動後無法開啟或 API 404：
   - 請確認使用 [http://127.0.0.1:3000](http://127.0.0.1:3000) 開啟（不要用 `file://`）
@@ -126,7 +140,7 @@ python app.py
 
 ---
 
-## 開發補充
+## 🛠️ 開發補充
 
 - `view_database.py`：快速檢視資料庫內容
 - `DATABASE_README.md` / `DATABASE_README_SQLite.md`：資料庫結構與說明
@@ -134,7 +148,7 @@ python app.py
 
 ---
 
-## 後續規劃（建議）
+## 📌 後續規劃（建議）
 
 - 後端搜尋升級：`search_by_name` 支援多關鍵字 AND 模糊條件（API 端也能單獨達到高命中）
 - 新增 `/health` 健康檢查路由，方便監控與自動化
@@ -142,6 +156,6 @@ python app.py
 
 ---
 
-## 授權
+## 📄 授權
 
 此專案為學術/課程專題用途。若要公開或商用，請先確認資料來源授權與圖片版權。
