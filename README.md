@@ -11,6 +11,7 @@
 ## 🚀 線上連結
 
 - **網站**：<https://mus-project.vercel.app/>
+- **網站＿ngrok**:<https://talitha-crushable-carlene.ngrok-free.dev/#>
 - **後端 API**：<https://mus-project.onrender.com>
 - **健康檢查**：<https://mus-project.onrender.com/health>
 
