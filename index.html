@@ -441,6 +441,15 @@
                         // 呼叫後端 API
                         try {
                             const res = await fetch(`${API_BASE}/api/search/name?q=${encodeURIComponent(queryStr)}`)
+                            
+                            // 檢查是否是 HTML 回應（ngrok 提示頁面）
+                            const contentType = res.headers.get('content-type')
+                            if (contentType && contentType.includes('text/html')) {
+                                alert('⚠️ 偵測到 ngrok 提示頁面\n\n請先在新分頁開啟以下網址，點擊 "Visit Site"：\n' + API_BASE + '\n\n然後回來重新搜尋。')
+                                this.searchResults = []
+                                return
+                            }
+                            
                             const data = await res.json()
                             if (data.success) {
                                 // 將 API 回傳資料轉換為前端顯示格式
@@ -472,6 +481,7 @@
                             }
                         } catch (err) {
                             console.error('搜尋錯誤:', err)
+                            alert('❌ 搜尋失敗\n\n可能原因：\n1. ngrok 伺服器未運行\n2. 網路連線問題\n3. 需要先訪問 ngrok 網址授權\n\n請確認本機 Flask 和 ngrok 都在運行中。')
                             this.searchResults = []
                         }
                         this.activePage = 'search'
