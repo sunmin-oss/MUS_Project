@@ -344,8 +344,8 @@
 
     <script>
         const { createApp } = Vue
-        // 直接呼叫 Render 後端，避免經由 Vercel 代理造成 504 逾時
-        const API_BASE = 'https://mus-project.onrender.com'
+        // ngrok 本機公開網址（任何地方都能訪問，含圖片）
+        const API_BASE = 'https://talitha-crushable-carlene.ngrok-free.dev'
 
         createApp({
             data() {
@@ -360,7 +360,7 @@
                     searchResults: [],
                     selectedDrug: {
                         id: 1,
-                        name: '阿斯匹靈',
+                        name: '阿斯匹林',
                         englishName: 'Aspirin',
                         category: '消炎止痛藥',
                         imageUrl: 'https://via.placeholder.com/300x200?text=阿斯匹靈',

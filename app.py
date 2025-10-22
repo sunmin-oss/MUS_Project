@@ -258,7 +258,7 @@ def serve_image(filename):
 # 提供前端頁面
 @app.route("/")
 def index():
-    return send_from_directory("drug-recognition-demo", "index.html")
+    return send_from_directory(".", "index.html")
 
 
 # SEO/ops endpoints
