@@ -8,18 +8,21 @@ from image_recognition import DrugImageRecognizer, detect_image_type
 
 app = Flask(__name__)
 # 允許跨網域請求，特別允許 Vercel 網域
-CORS(app, resources={
-    r"/api/*": {
-        "origins": [
-            "https://mus-project.vercel.app",
-            "http://localhost:*",
-            "http://127.0.0.1:*",
-            "https://*.ngrok-free.dev"
-        ],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
-    }
-})
+CORS(
+    app,
+    resources={
+        r"/api/*": {
+            "origins": [
+                "https://mus-project.vercel.app",
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "https://*.ngrok-free.dev",
+            ],
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Content-Type"],
+        }
+    },
+)
 DB_PATH = "drug_recognition.db"
 UPLOAD_FOLDER = "uploads"
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "bmp"}
