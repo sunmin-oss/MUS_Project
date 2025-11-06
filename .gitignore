@@ -34,9 +34,18 @@ dist/
 medicine_photos/
 IMG_*.jpeg
 
+# Local runtime artifacts
+ngrok_recovery_codes.txt
+uploads/
+
 # Logs
 *.log
 
 # Frontend caches
 .dr-cache/
 .cache/
+
+# Project docs and tests (keep repo lean)
+docs/
+tests/
+QUICK_REFERENCE.md

@@ -216,18 +216,42 @@ def recognize_drug():
 
         else:
             # 特徵比對模式（預設）
-            results = feature_recognizer.recognize_drug(filepath, top_k=top_k)
+            # 獲取形狀和顏色過濾條件
+            filter_shape = request.form.get("shape", "").strip() or None
+            filter_color = request.form.get("color", "").strip() or None
+
+            # 呼叫辨識器並套用篩選
+            results = feature_recognizer.recognize_drug(
+                filepath,
+                top_k=top_k,
+                filter_shape=filter_shape,
+                filter_color=filter_color,
+            )
 
             # 清理檔案
             Path(filepath).unlink(missing_ok=True)
 
             if not results:
-                return jsonify(
-                    {
-                        "success": False,
-                        "message": "無法辨識，請確保圖片清晰且包含完整藥物",
-                    }
-                )
+                filter_msg = []
+                if filter_shape:
+                    filter_msg.append(f"形狀: {filter_shape}")
+                if filter_color:
+                    filter_msg.append(f"顏色: {filter_color}")
+
+                if filter_msg:
+                    return jsonify(
+                        {
+                            "success": False,
+                            "message": f"找不到符合條件的藥物 ({', '.join(filter_msg)})，請調整篩選條件或重新拍照",
+                        }
+                    )
+                else:
+                    return jsonify(
+                        {
+                            "success": False,
+                            "message": "無法辨識，請確保圖片清晰且包含完整藥物",
+                        }
+                    )
 
             # 補充完整藥物資訊
             enriched_results = []
@@ -248,6 +272,10 @@ def recognize_drug():
                 {
                     "success": True,
                     "method": "特徵比對",
+                    "filters": {
+                        "shape": filter_shape,
+                        "color": filter_color,
+                    },
                     "count": len(enriched_results),
                     "data": enriched_results,
                 }

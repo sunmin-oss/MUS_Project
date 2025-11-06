@@ -38,16 +38,65 @@
 
 ---
 
-## 📂 目錄結構（重點）
+## 📂 專案結構
 
-- `app.py`：Flask 入口，提供 API 與靜態檔案服務
-- `database_query.py`：資料庫查詢封裝（名稱/外觀特徵/圖片/統計）
-- `create_database.py`：建立/初始化 `drug_recognition.db`（由 `medicine_data.csv` 匯入）
-- `download_medicine_photos.py`：選用，下載藥物圖片至 `medicine_photos/`
-- `index.html`：前端頁面（Vue 3 + Tailwind；同一檔在 Vercel 以靜態網站部署）
-- `medicine_data.csv`：藥物原始資料（CSV）
-- `medicine_photos/`：藥物圖片（本機檔案夾；已在 .gitignore 排除）
-- `drug_recognition.db`：SQLite 資料庫檔（已在 .gitignore 排除）
+```
+MUS_Project/
+├── 📁 核心檔案
+│   ├── app.py                    # Flask 主程式入口
+│   ├── database_query.py         # 資料庫查詢封裝
+│   ├── image_recognition.py      # 圖片辨識模組（特徵比對、LBP）
+│   ├── ocr_module.py            # OCR 文字辨識模組
+│   └── index.html               # 前端頁面（Vue 3 + Tailwind）
+│
+├── 📁 資料檔案
+│   ├── medicine_data.csv        # 藥物原始資料
+│   ├── drug_recognition.db      # SQLite 資料庫（.gitignore）
+│   ├── medicine_photos/         # 藥物圖片資料夾（.gitignore）
+│   └── uploads/                 # 上傳圖片暫存（.gitignore）
+│
+├── 📁 scripts/                   # 工具腳本
+│   ├── create_database.py       # 建立/初始化資料庫
+│   ├── download_medicine_photos.py  # 下載藥物圖片
+│   ├── sync_images.py           # 同步圖片資料
+│   ├── view_database.py         # 查看資料庫內容
+│   ├── setup_ngrok.ps1          # ngrok 設定腳本
+│   ├── start_server.ps1         # 啟動伺服器
+│   └── start_with_ngrok.ps1     # 一鍵啟動伺服器+ngrok
+│
+├── 📁 tests/                     # 測試檔案
+│   ├── test_lbp_features.py     # LBP 特徵測試
+│   └── test_recognition.py      # 辨識功能測試
+│
+├── 📁 docs/                      # 文檔資料
+│   ├── DATABASE_README.md       # 資料庫結構說明
+│   ├── DATABASE_README_SQLite.md
+│   ├── LBP_FEATURES_README.md   # LBP 紋理特徵說明
+│   ├── LOCAL_SERVER_SETUP.md    # 本地伺服器設定
+│   ├── MODELS_INTEGRATION.md    # 模型整合文件
+│   ├── NGROK_SETUP.md           # ngrok 完整設定
+│   ├── QUICKSTART_NGROK.md      # ngrok 快速指南
+│   ├── ngrok_安裝步驟.md
+│   ├── 技術棧討論-2025-09-20.md
+│   ├── 技術棧討論-2025-09-23.md
+│   ├── 藥物辨識系統專題對話紀錄.md
+│   ├── 想法.txt
+│   └── MUS_報告.pdf
+│
+├── 📁 config/                    # 配置檔案
+│   ├── robots.txt               # SEO 爬蟲規則
+│   ├── sitemap.xml              # 網站地圖
+│   ├── .vercelignore            # Vercel 部署忽略
+│   ├── googlef01fd03eb85a4416.html  # Google 驗證
+│   ├── ngrok_page.html          # ngrok 測試頁面
+│   └── ngrok_recovery_codes.txt # ngrok 備份碼
+│
+└── 📁 其他
+    ├── requirements.txt         # Python 依賴套件
+    ├── README.md               # 專案說明文件
+    ├── .gitignore              # Git 忽略規則
+    └── .gitattributes          # Git 屬性設定
+```
 
 ---
 
@@ -78,11 +127,11 @@ pip install -r requirements.txt
 cd "d:\大學\專題\MUS_Project"
 
 # 1) 建立資料庫（由 CSV 匯入）
-python create_database.py
+python scripts\create_database.py
 # 成功後會產生 drug_recognition.db
 
 # 2) （可選）下載藥物圖片到 medicine_photos/
-python download_medicine_photos.py
+python scripts\download_medicine_photos.py
 ```
 
 > 若尚未下載圖片，前端會顯示「無圖片」占位，不影響基本搜尋與欄位顯示。
@@ -112,10 +161,10 @@ python app.py
 
 ```powershell
 # 一鍵啟動（會同時啟動 Flask 和 ngrok）
-.\start_with_ngrok.ps1
+.\scripts\start_with_ngrok.ps1
 ```
 
-詳細設定請看：[📖 ngrok 快速指南](./QUICKSTART_NGROK.md)
+詳細設定請看：[📖 ngrok 快速指南](./docs/QUICKSTART_NGROK.md)
 
 ### 方法 3：線上部署版本
 
@@ -184,19 +233,23 @@ python app.py
 
 ## 🛠️ 開發補充
 
-- `view_database.py`：快速檢視資料庫內容
-- `DATABASE_README.md` / `DATABASE_README_SQLite.md`：資料庫結構與說明
+- `scripts/view_database.py`：快速檢視資料庫內容
+- `docs/DATABASE_README.md` / `docs/DATABASE_README_SQLite.md`：資料庫結構與說明
+- `tests/`：測試檔案資料夾
+  - `test_lbp_features.py`：測試 LBP 紋理特徵
+  - `test_recognition.py`：測試辨識功能
 - `.gitignore`：已忽略 SQLite、圖片、快取、暫存等
 
 ---
 
-## � 相關文檔
+## 📚 相關文檔
 
-- [QUICKSTART_NGROK.md](./QUICKSTART_NGROK.md) - **ngrok 快速啟動指南（3 分鐘上手）**
-- [NGROK_SETUP.md](./NGROK_SETUP.md) - ngrok 完整設定教學與進階功能
-- [LOCAL_SERVER_SETUP.md](./LOCAL_SERVER_SETUP.md) - 本地伺服器設定指南（多種網路方案）
-- [MODELS_INTEGRATION.md](./MODELS_INTEGRATION.md) - 圖片辨識模型整合文件
-- [DATABASE_README.md](./DATABASE_README.md) - 資料庫結構說明
+- [docs/QUICKSTART_NGROK.md](./docs/QUICKSTART_NGROK.md) - **ngrok 快速啟動指南（3 分鐘上手）**
+- [docs/NGROK_SETUP.md](./docs/NGROK_SETUP.md) - ngrok 完整設定教學與進階功能
+- [docs/LOCAL_SERVER_SETUP.md](./docs/LOCAL_SERVER_SETUP.md) - 本地伺服器設定指南（多種網路方案）
+- [docs/MODELS_INTEGRATION.md](./docs/MODELS_INTEGRATION.md) - 圖片辨識模型整合文件
+- [docs/LBP_FEATURES_README.md](./docs/LBP_FEATURES_README.md) - LBP 紋理特徵與刻痕比對說明
+- [docs/DATABASE_README.md](./docs/DATABASE_README.md) - 資料庫結構說明
 
 ---
 

@@ -232,6 +232,22 @@ class DrugDatabase:
 
         return drug
 
+    def get_drug(self, drug_id: int) -> Optional[Dict]:
+        """取得單一藥物基本資訊（不含圖片）。"""
+
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT *
+            FROM drugs
+            WHERE id = ?
+        """,
+            (drug_id,),
+        )
+
+        result = cursor.fetchone()
+        return dict(result) if result else None
+
     # ===== AI 模型特徵向量相關 =====
 
     def update_image_features(self, image_id: int, feature_vector: List[float]):
@@ -273,7 +289,7 @@ class DrugDatabase:
         cursor = self.conn.cursor()
 
         cursor.execute(
-            """
+            """+-
             SELECT 
                 di.id,
                 di.image_filename,
