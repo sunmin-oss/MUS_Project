@@ -5,6 +5,9 @@ from werkzeug.utils import secure_filename
 from flask_cors import CORS
 from database_query import DrugDatabase
 from image_recognition import DrugImageRecognizer, detect_image_type
+import threading
+import time
+import uuid
 
 app = Flask(__name__)
 # 允許跨網域請求，特別允許 Vercel 網域
@@ -35,6 +38,10 @@ feature_recognizer = DrugImageRecognizer(DB_PATH)
 
 # 延遲載入 OCR（避免啟動時間過長）
 ocr_recognizer = None
+
+# 簡易進度/取消管理
+PROGRESS = {}  # request_id -> {done:int, total:int, status:str, ts:float}
+CANCEL_FLAGS = {}  # request_id -> threading.Event
 
 
 def get_ocr_recognizer():
@@ -166,6 +173,9 @@ def recognize_drug():
         )  # auto, feature, ocr, prescription
         top_k = int(request.form.get("top_k", 5))
 
+        # 請求識別 ID（用於進度與取消）
+        request_id = request.form.get("request_id") or uuid.uuid4().hex
+
         # 自動判斷模型
         if model_type == "auto":
             image_type = detect_image_type(filepath)
@@ -220,13 +230,42 @@ def recognize_drug():
             filter_shape = request.form.get("shape", "").strip() or None
             filter_color = request.form.get("color", "").strip() or None
 
-            # 呼叫辨識器並套用篩選
-            results = feature_recognizer.recognize_drug(
-                filepath,
-                top_k=top_k,
-                filter_shape=filter_shape,
-                filter_color=filter_color,
-            )
+            # 初始化進度與取消旗標
+            cancel_ev = threading.Event()
+            CANCEL_FLAGS[request_id] = cancel_ev
+            PROGRESS[request_id] = {
+                "done": 0,
+                "total": 0,
+                "status": "running",
+                "ts": time.time(),
+            }
+
+            def on_progress(done, total):
+                PROGRESS[request_id] = {
+                    "done": int(done),
+                    "total": int(total),
+                    "status": "running",
+                    "ts": time.time(),
+                }
+
+            def is_cancelled():
+                return cancel_ev.is_set()
+
+            try:
+                # 呼叫辨識器並套用篩選（帶入 hooks）
+                results = feature_recognizer.recognize_drug(
+                    filepath,
+                    top_k=top_k,
+                    filter_shape=filter_shape,
+                    filter_color=filter_color,
+                    hooks={"on_progress": on_progress, "is_cancelled": is_cancelled},
+                )
+                PROGRESS[request_id]["status"] = (
+                    "done" if not cancel_ev.is_set() else "canceled"
+                )
+            finally:
+                # 清理取消旗標（保留進度一段時間供前端讀取）
+                CANCEL_FLAGS.pop(request_id, None)
 
             # 清理檔案
             Path(filepath).unlink(missing_ok=True)
@@ -272,6 +311,7 @@ def recognize_drug():
                 {
                     "success": True,
                     "method": "特徵比對",
+                    "request_id": request_id,
                     "filters": {
                         "shape": filter_shape,
                         "color": filter_color,
@@ -290,6 +330,40 @@ def recognize_drug():
             jsonify({"success": False, "message": f"辨識過程發生錯誤: {str(e)}"}),
             500,
         )
+
+
+@app.route("/api/cancel", methods=["POST"])
+def cancel_request():
+    data = request.get_json(silent=True) or {}
+    req_id = data.get("request_id")
+    if not req_id:
+        return jsonify({"success": False, "message": "缺少 request_id"}), 400
+    ev = CANCEL_FLAGS.get(req_id)
+    if not ev:
+        # 若找不到也回成功，讓前端流程簡單
+        PROGRESS[req_id] = {
+            "done": 0,
+            "total": 0,
+            "status": "canceled",
+            "ts": time.time(),
+        }
+        return jsonify({"success": True, "message": "not running or already finished"})
+    ev.set()
+    PROGRESS[req_id] = {
+        "done": PROGRESS.get(req_id, {}).get("done", 0),
+        "total": PROGRESS.get(req_id, {}).get("total", 0),
+        "status": "canceled",
+        "ts": time.time(),
+    }
+    return jsonify({"success": True})
+
+
+@app.route("/api/progress/<request_id>", methods=["GET"])
+def get_progress(request_id):
+    info = PROGRESS.get(request_id)
+    if not info:
+        return jsonify({"success": False, "status": "unknown", "done": 0, "total": 0})
+    return jsonify({"success": True, **info})
 
 
 # 圖片靜態檔案服務

@@ -44,6 +44,16 @@
         [v-cloak] {
             display: none;
         }
+        /* 全畫面遮罩 */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
     </style>
 </head>
 
@@ -142,7 +152,7 @@
                         <input type="file" ref="fileInput" class="hidden" accept="image/*" @change="handleFileChange" />
                         <button @click="identifyDrug"
                             class="w-full mt-4 py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
-                            :disabled="!previewImage">
+                            :disabled="!previewImage || isRecognizing">
                             辨識藥物
                         </button>
                     </div>
@@ -378,13 +388,37 @@
                 </div>
             </div>
         </div>
+        <!-- 處理中遮罩與進度條（放在 #app 內，確保 Vue 能渲染模板） -->
+        <div v-if="isRecognizing" class="overlay">
+            <div class="bg-white rounded-xl shadow-xl w-96 p-6">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-spinner fa-spin text-indigo-600 mr-3"></i>
+                    <h3 class="text-lg font-semibold">正在辨識，請稍候…</h3>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3 mb-2 overflow-hidden">
+                    <div class="bg-indigo-600 h-3" :style="{ width: progressPercent + '%' }"></div>
+                </div>
+                <div class="flex justify-between text-sm text-gray-600 mb-4">
+                    <span>進度：{{ progress.done }}/{{ progress.total || '?' }}</span>
+                    <span>{{ progressPercent.toFixed(0) }}%</span>
+                </div>
+                <div class="flex gap-2">
+                    <button @click="cancelRecognition" class="flex-1 py-2 rounded-md border border-gray-300 hover:bg-gray-50">取消</button>
+                    <button disabled class="flex-1 py-2 rounded-md bg-indigo-600 text-white opacity-70">辨識中</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         const { createApp } = Vue
-        // ngrok 本機公開網址（任何地方都能訪問，含圖片）
-        // 使用 ngrok 後端可以存取本機圖片，提供完整功能
-        const API_BASE = 'https://talitha-crushable-carlene.ngrok-free.dev'
+        // 動態偵測後端 API 位址：預設使用同源（本機/Ngrok 皆適用）
+        // 如需指定外部 API，可在瀏覽器 Console 設定：localStorage.setItem('API_BASE', 'https://your-ngrok.ngrok-free.dev')
+        const API_BASE = (function () {
+            const saved = localStorage.getItem('API_BASE')
+            if (saved) return saved
+            return window.location.origin
+        })()
 
         createApp({
             data() {
@@ -396,6 +430,12 @@
                     recognitionMode: 'auto',  // 辨識模式: auto, feature, ocr, prescription
                     selectedShape: '',  // 選擇的形狀
                     selectedColor: '',  // 選擇的顏色
+                    // 鎖定與進度
+                    isRecognizing: false,
+                    requestId: null,
+                    progress: { done: 0, total: 0, status: 'idle' },
+                    progressTimer: null,
+                    abortController: null,
                     commonDrugs: ['鼻可康膠囊', '普拿疼', '愛克痰'],
                     recentSearches: [],
                     searchResults: [],
@@ -532,17 +572,40 @@
                         alert('請先選擇圖片')
                         return
                     }
+                    if (this.isRecognizing) return
                     
                     // 顯示載入中
                     const loadingMsg = `辨識中（${this.recognitionMode === 'auto' ? '自動判斷' : this.recognitionMode}模式），請稍候...`
                     console.log(loadingMsg)
                     
                     try {
+                        // 建立請求 ID 用於取消/進度
+                        this.requestId = (crypto?.randomUUID?.() || Math.random().toString(36).slice(2))
+                        this.isRecognizing = true
+                        this.progress = { done: 0, total: 0, status: 'running' }
+                        // 輪詢進度
+                        this.progressTimer = setInterval(async () => {
+                            try {
+                                const res = await fetch(`${API_BASE}/api/progress/${this.requestId}`, { cache: 'no-store' })
+                                const j = await res.json()
+                                if (j.success) {
+                                    this.progress = { done: j.done, total: j.total, status: j.status }
+                                    if (j.status === 'done' || j.status === 'canceled') {
+                                        clearInterval(this.progressTimer); this.progressTimer = null
+                                    }
+                                }
+                            } catch {}
+                        }, 500)
+
+                        // 啟動請求
+                        this.abortController = new AbortController()
+
                         // 建立 FormData 上傳圖片
                         const formData = new FormData()
                         formData.append('image', this.imageFile)
                         formData.append('top_k', '5')
                         formData.append('model', this.recognitionMode)  // auto, feature, ocr, prescription
+                        formData.append('request_id', this.requestId)
                         
                         // 加入形狀和顏色過濾條件
                         if (this.selectedShape) {
@@ -555,7 +618,8 @@
                         // 呼叫辨識 API
                         const res = await fetch(`${API_BASE}/api/recognize`, {
                             method: 'POST',
-                            body: formData
+                            body: formData,
+                            signal: this.abortController.signal
                         })
                         
                         const data = await res.json()
@@ -605,8 +669,28 @@
                         }
                     } catch (err) {
                         console.error('辨識錯誤:', err)
-                        alert('辨識過程發生錯誤，請稍後再試')
+                        if (err.name === 'AbortError') {
+                            // 已取消
+                        } else {
+                            alert('辨識過程發生錯誤，請稍後再試')
+                        }
+                    } finally {
+                        this.isRecognizing = false
+                        if (this.progressTimer) { clearInterval(this.progressTimer); this.progressTimer = null }
+                        this.abortController = null
                     }
+                },
+                async cancelRecognition() {
+                    if (!this.isRecognizing || !this.requestId) return
+                    try {
+                        this.abortController?.abort()
+                        await fetch(`${API_BASE}/api/cancel`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ request_id: this.requestId }),
+                            keepalive: true
+                        })
+                    } catch {}
                 },
                 viewDrugDetails(drug) {
                     this.selectedDrug = drug
@@ -617,6 +701,27 @@
                     this.imageFile = null
                     this.activePage = 'home'
                 }
+            }
+            ,
+            computed: {
+                progressPercent() {
+                    const { done, total } = this.progress
+                    if (!total || total <= 0) return 5 // 不確定總量時給個最小進度
+                    return Math.min(100, Math.max(0, (done / total) * 100))
+                }
+            },
+            mounted() {
+                // 頁面關閉/刷新時嘗試通知後端取消
+                window.addEventListener('beforeunload', () => {
+                    if (this.isRecognizing && this.requestId) {
+                        try {
+                            navigator.sendBeacon(
+                                `${API_BASE}/api/cancel`,
+                                new Blob([JSON.stringify({ request_id: this.requestId })], { type: 'application/json' })
+                            )
+                        } catch {}
+                    }
+                })
             }
         }).mount('#app')
     </script>

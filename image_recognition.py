@@ -6,7 +6,7 @@
 import cv2
 import numpy as np
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Any
 import sqlite3
 import threading
 
@@ -172,6 +172,50 @@ class DrugImageRecognizer:
 
         return True
 
+    def _infer_color_labels(self, image: np.ndarray) -> List[str]:
+        """
+        由圖片推估顏色標籤（中文），回傳候選標籤列表，用於縮小比對範圍。
+
+        可能回傳：['白', '白色']、['紅', '紅色']、['黃', '黃色']、['綠', '綠色']、['藍', '藍色']、
+                 ['紫', '紫色']、['橙', '橘', '橙色', '橘色']、['黑', '黑色']、['灰', '灰色']、['棕', '咖啡', '棕色', '咖啡色']
+        """
+        try:
+            hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+            h = hsv[:, :, 0].astype(np.float32)
+            s = hsv[:, :, 1].astype(np.float32)
+            v = hsv[:, :, 2].astype(np.float32)
+
+            mean_s = float(np.mean(s))
+            mean_v = float(np.mean(v))
+
+            if mean_s < 30:  # 低飽和：黑/白/灰
+                if mean_v > 180:
+                    return ["白", "白色"]
+                elif mean_v < 60:
+                    return ["黑", "黑色"]
+                else:
+                    return ["灰", "灰色"]
+
+            # 以 Hue 平均估色調
+            mean_h = float(np.mean(h))  # 0~180
+            if mean_h <= 10 or mean_h >= 160:
+                return ["紅", "紅色"]
+            if 11 <= mean_h <= 25:
+                return ["橙", "橘", "橙色", "橘色"]
+            if 26 <= mean_h <= 34:
+                return ["黃", "黃色"]
+            if 35 <= mean_h <= 85:
+                return ["綠", "綠色"]
+            if 86 <= mean_h <= 125:
+                return ["藍", "藍色"]
+            if 126 <= mean_h <= 159:
+                return ["紫", "紫色"]
+
+            # 其他色調視為棕/咖啡
+            return ["棕", "咖啡", "棕色", "咖啡色"]
+        except Exception:
+            return []
+
     def _load_database_features(self) -> None:
         """背景載入圖片清單並預先計算少量特徵。"""
 
@@ -318,83 +362,65 @@ class DrugImageRecognizer:
             return None
 
     def extract_lbp_features(
-        self, image: np.ndarray, radius: int = 3, n_points: int = 24
+        self, image: np.ndarray, radius: int = 1, n_points: int = 8
     ) -> np.ndarray:
         """
-        提取 LBP (Local Binary Pattern) 紋理特徵
-        LBP 可以捕捉藥物表面的紋理、刻痕、光澤等細節
+        提取 LBP (Local Binary Pattern) 紋理特徵（高速向量化版本）
+
+        說明：
+        - 將灰階圖縮放至 128x128，使用 8 鄰域、半徑 1 的經典 LBP。
+        - 以 numpy 位元運算計算，不使用巢狀 Python 迴圈，大幅降低延遲。
 
         Args:
             image: 圖片陣列
-            radius: LBP 半徑 (預設 3)
-            n_points: 採樣點數量 (預設 24)
+            radius: LBP 半徑（僅支援 1，用於快速運算）
+            n_points: 鄰域點數（僅支援 8）
 
         Returns:
-            LBP 直方圖特徵向量
+            長度 256 的 LBP 直方圖（已正規化）
         """
         try:
-            # 轉為灰階
+            # 轉為灰階並縮小尺寸以降低運算量
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            gray = cv2.resize(gray, (128, 128), interpolation=cv2.INTER_AREA)
+            gray = cv2.GaussianBlur(gray, (3, 3), 0)
 
-            # 套用高斯模糊減少雜訊
-            gray = cv2.GaussianBlur(gray, (5, 5), 0)
+            if radius != 1 or n_points != 8:
+                # 為保持速度與穩定性，暫時僅支援 (radius=1, n_points=8)
+                radius = 1
+                n_points = 8
 
-            h, w = gray.shape
-            # 使用更大的數據類型來避免溢出
-            lbp_image = np.zeros_like(gray, dtype=np.int32)
+            # 內部區域（避免邊界）
+            c = gray[1:-1, 1:-1]
+            codes = np.zeros_like(c, dtype=np.uint8)
 
-            # 計算 LBP
-            for i in range(radius, h - radius):
-                for j in range(radius, w - radius):
-                    center = float(gray[i, j])
-                    binary_string = []
+            # 8 個鄰居位移（順時針）
+            neighbors = [
+                gray[0:-2, 0:-2],  # (-1,-1)
+                gray[0:-2, 1:-1],  # (-1, 0)
+                gray[0:-2, 2:],  # (-1,+1)
+                gray[1:-1, 2:],  # ( 0,+1)
+                gray[2:, 2:],  # (+1,+1)
+                gray[2:, 1:-1],  # (+1, 0)
+                gray[2:, 0:-2],  # (+1,-1)
+                gray[1:-1, 0:-2],  # ( 0,-1)
+            ]
 
-                    # 在圓形鄰域採樣
-                    for k in range(n_points):
-                        angle = 2 * np.pi * k / n_points
-                        x = i + radius * np.cos(angle)
-                        y = j + radius * np.sin(angle)
+            for bit, n in enumerate(neighbors):
+                codes |= (n >= c).astype(np.uint8) << bit
 
-                        # 雙線性插值
-                        x1, y1 = int(x), int(y)
-                        x2, y2 = min(x1 + 1, h - 1), min(y1 + 1, w - 1)
-
-                        if x2 >= h or y2 >= w or x1 < 0 or y1 < 0:
-                            continue
-
-                        dx, dy = x - x1, y - y1
-                        pixel_value = (
-                            float(gray[x1, y1]) * (1 - dx) * (1 - dy)
-                            + float(gray[x2, y1]) * dx * (1 - dy)
-                            + float(gray[x1, y2]) * (1 - dx) * dy
-                            + float(gray[x2, y2]) * dx * dy
-                        )
-
-                        binary_string.append(1 if pixel_value >= center else 0)
-
-                    # 轉換為 LBP 值 (限制在合理範圍)
-                    if len(binary_string) == n_points:
-                        lbp_value = sum(
-                            [bit * (2**idx) for idx, bit in enumerate(binary_string)]
-                        )
-                        # 使用模運算確保值在合理範圍內
-                        lbp_image[i, j] = lbp_value % 256
-
-            # 計算 LBP 直方圖
-            hist, _ = np.histogram(lbp_image.ravel(), bins=256, range=(0, 256))
-
-            # 正規化
-            hist = hist.astype(float)
-            hist_sum = hist.sum()
-            if hist_sum > 0:
-                hist = hist / hist_sum
+            # 計算直方圖並正規化
+            hist, _ = np.histogram(codes.ravel(), bins=256, range=(0, 256))
+            hist = hist.astype(np.float32)
+            s = hist.sum()
+            if s > 0:
+                hist /= s
 
             return hist
 
         except Exception as e:
             print(f"LBP 特徵提取失敗: {e}")
-            # 返回零向量
-            return np.zeros(256)
+            return np.zeros(256, dtype=np.float32)
 
     def extract_mark_features(self, mark_text: str) -> str:
         """
@@ -524,6 +550,7 @@ class DrugImageRecognizer:
         top_k: int = 5,
         filter_shape: Optional[str] = None,
         filter_color: Optional[str] = None,
+        hooks: Optional[Dict[str, Any]] = None,
     ) -> List[Dict]:
         """
         辨識上傳的藥物圖片
@@ -537,6 +564,21 @@ class DrugImageRecognizer:
         Returns:
             辨識結果列表，每項包含藥物資訊和相似度
         """
+        import time
+
+        t0 = time.time()
+
+        # hooks
+        on_progress = None
+        is_cancelled = None
+        if isinstance(hooks, dict):
+            on_progress = hooks.get("on_progress")
+            is_cancelled = hooks.get("is_cancelled")
+            if not callable(on_progress):
+                on_progress = None
+            if not callable(is_cancelled):
+                is_cancelled = None
+
         # 預處理上傳的圖片
         uploaded_img = self.preprocess_image(uploaded_image_path)
         if uploaded_img is None:
@@ -564,6 +606,18 @@ class DrugImageRecognizer:
             print(
                 f"📋 套用篩選條件後，剩餘 {len(filtered_records)}/{len(self._image_records)} 筆藥物"
             )
+        else:
+            # 未指定篩選時，依據圖片自動推估顏色，縮小搜尋空間
+            auto_colors = self._infer_color_labels(uploaded_img)
+            if auto_colors:
+                filtered_records = [
+                    r
+                    for r in self._image_records
+                    if any(lbl in (r.get("color") or "") for lbl in auto_colors)
+                ]
+                print(
+                    f"🎯 自動推估顏色 {auto_colors}，候選縮小為 {len(filtered_records)}/{len(self._image_records)} 筆"
+                )
 
         if not filtered_records:
             print("⚠️  沒有符合篩選條件的藥物")
@@ -571,8 +625,17 @@ class DrugImageRecognizer:
 
         # 獲取所有有圖片的藥物
         results = []
+        total_candidates = len(filtered_records)
+        if on_progress:
+            try:
+                on_progress(0, total_candidates)
+            except Exception:
+                pass
 
-        for record in filtered_records:
+        for idx, record in enumerate(filtered_records, start=1):
+            if is_cancelled and is_cancelled():
+                print("🛑 收到取消信號，提前結束比對")
+                break
             features = self._get_or_compute_features(record)
             if features is None:
                 continue
@@ -626,8 +689,28 @@ class DrugImageRecognizer:
                 }
             )
 
+            # 避免單次請求沒有回應太久，對大型資料集每處理 200 筆就打印一次進度
+            if idx % 200 == 0:
+                elapsed = time.time() - t0
+                print(f"⏱️ 已比對 {idx} 筆，耗時 {elapsed:.1f}s")
+            if on_progress:
+                try:
+                    on_progress(idx, total_candidates)
+                except Exception:
+                    pass
+
         # 按相似度排序並返回前 K 個
         results.sort(key=lambda x: x["similarity"], reverse=True)
+
+        elapsed = time.time() - t0
+        print(
+            f"✅ 比對完成：候選 {len(filtered_records)} → 取前 {top_k}，總耗時 {elapsed:.2f}s"
+        )
+        if on_progress:
+            try:
+                on_progress(total_candidates, total_candidates)
+            except Exception:
+                pass
 
         return results[:top_k]
 
