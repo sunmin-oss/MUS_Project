@@ -233,12 +233,36 @@ class DrugDatabase:
         return drug
 
     def get_drug(self, drug_id: int) -> Optional[Dict]:
-        """取得單一藥物基本資訊（不含圖片）。"""
+        """取得單一藥物完整資訊（包含臨床資訊，不含圖片）。"""
 
         cursor = self.conn.cursor()
         cursor.execute(
             """
-            SELECT *
+            SELECT 
+                id,
+                license_number,
+                chinese_name,
+                english_name,
+                shape,
+                color,
+                mark,
+                size,
+                special_dosage_form,
+                special_odor,
+                label_front,
+                label_back,
+                indications,
+                dosage,
+                side_effects,
+                contraindications,
+                precautions,
+                ingredient,
+                category,
+                manufacturer,
+                storage_conditions,
+                expiry_info,
+                created_at,
+                updated_at
             FROM drugs
             WHERE id = ?
         """,

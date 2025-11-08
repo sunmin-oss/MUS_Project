@@ -298,20 +298,54 @@
 
                 <!-- 藥物詳細信息 -->
                 <div class="border-t border-gray-200 px-6 py-4">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-2">適應症</h2>
-                    <p class="text-gray-600 mb-4">{{ selectedDrug.indications }}</p>
+                    <div v-if="selectedDrug.indications" class="mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2">適應症</h2>
+                        <p class="text-gray-600">{{ selectedDrug.indications }}</p>
+                    </div>
 
-                    <h2 class="text-lg font-semibold text-gray-800 mb-2">用法用量</h2>
-                    <p class="text-gray-600 mb-4">{{ selectedDrug.dosage }}</p>
+                    <div v-if="selectedDrug.dosage" class="mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2">用法用量</h2>
+                        <p class="text-gray-600">{{ selectedDrug.dosage }}</p>
+                    </div>
 
-                    <h2 class="text-lg font-semibold text-gray-800 mb-2">副作用</h2>
-                    <p class="text-gray-600 mb-4">{{ selectedDrug.sideEffects }}</p>
+                    <div v-if="selectedDrug.side_effects" class="mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2">副作用</h2>
+                        <p class="text-gray-600">{{ selectedDrug.side_effects }}</p>
+                    </div>
 
-                    <h2 class="text-lg font-semibold text-gray-800 mb-2">禁忌</h2>
-                    <p class="text-gray-600 mb-4">{{ selectedDrug.contraindications }}</p>
+                    <div v-if="selectedDrug.contraindications" class="mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2">禁忌症</h2>
+                        <p class="text-gray-600">{{ selectedDrug.contraindications }}</p>
+                    </div>
 
-                    <h2 class="text-lg font-semibold text-gray-800 mb-2">注意事項</h2>
-                    <p class="text-gray-600">{{ selectedDrug.precautions }}</p>
+                    <div v-if="selectedDrug.precautions" class="mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2">注意事項</h2>
+                        <p class="text-gray-600">{{ selectedDrug.precautions }}</p>
+                    </div>
+
+                    <div v-if="selectedDrug.ingredient" class="mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2">主要成分</h2>
+                        <p class="text-gray-600">{{ selectedDrug.ingredient }}</p>
+                    </div>
+
+                    <div v-if="selectedDrug.category" class="mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2">藥品分類</h2>
+                        <p class="text-gray-600">{{ selectedDrug.category }}</p>
+                    </div>
+
+                    <div v-if="selectedDrug.storage_conditions" class="mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2">儲存條件</h2>
+                        <p class="text-gray-600">{{ selectedDrug.storage_conditions }}</p>
+                    </div>
+
+                    <div v-if="selectedDrug.expiry_info" class="mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2">有效期限資訊</h2>
+                        <p class="text-gray-600">{{ selectedDrug.expiry_info }}</p>
+                    </div>
+
+                    <div v-if="!selectedDrug.indications && !selectedDrug.dosage && !selectedDrug.side_effects && !selectedDrug.contraindications && !selectedDrug.precautions" class="text-gray-500 text-center py-4">
+                        暫無臨床資訊
+                    </div>
                 </div>
             </div>
         </div>
@@ -693,8 +727,60 @@
                     } catch {}
                 },
                 viewDrugDetails(drug) {
-                    this.selectedDrug = drug
-                    this.activePage = 'detail'
+                    // 如果已經有完整資料（例如從辨識結果），直接顯示
+                    if (drug.indications !== undefined || drug.dosage !== undefined) {
+                        this.selectedDrug = drug
+                        this.activePage = 'detail'
+                        return
+                    }
+                    
+                    // 否則從 API 獲取完整資料
+                    fetch(`${API_BASE}/api/drug/${drug.id}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                // 轉換為前端格式
+                                const drugData = data.data
+                                let imageUrl = ''
+                                if (drugData.images && drugData.images.length > 0) {
+                                    imageUrl = `${API_BASE}/images/${drugData.images[0].image_filename}`
+                                }
+                                
+                                this.selectedDrug = {
+                                    id: drugData.id,
+                                    license_number: drugData.license_number,
+                                    name: drugData.chinese_name,
+                                    englishName: drugData.english_name,
+                                    shape: drugData.shape,
+                                    color: drugData.color,
+                                    special_dosage_form: drugData.special_dosage_form,
+                                    special_odor: drugData.special_odor,
+                                    mark: drugData.mark,
+                                    size: drugData.size,
+                                    label_front: drugData.label_front,
+                                    label_back: drugData.label_back,
+                                    indications: drugData.indications,
+                                    dosage: drugData.dosage,
+                                    side_effects: drugData.side_effects,
+                                    contraindications: drugData.contraindications,
+                                    precautions: drugData.precautions,
+                                    ingredient: drugData.ingredient,
+                                    category: drugData.category,
+                                    manufacturer: drugData.manufacturer,
+                                    storage_conditions: drugData.storage_conditions,
+                                    expiry_info: drugData.expiry_info,
+                                    imageUrl,
+                                    images: drugData.images
+                                }
+                                this.activePage = 'detail'
+                            } else {
+                                alert('無法獲取藥物詳細資訊')
+                            }
+                        })
+                        .catch(err => {
+                            console.error('獲取藥物詳情錯誤:', err)
+                            alert('載入藥物詳情失敗')
+                        })
                 },
                 resetUpload() {
                     this.previewImage = null
