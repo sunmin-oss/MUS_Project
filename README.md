@@ -397,11 +397,20 @@ python app.py
 #### 選項 B: 啟動 Web 系統 (公網訪問) ⭐ 推薦
 
 ```powershell
-# 一鍵啟動 Flask + ngrok
-.\scripts\start_with_ngrok.ps1
+# 步驟 1: 啟動 Flask 伺服器
+python app.py
+
+# 步驟 2: 開啟新的 PowerShell 視窗，啟動 ngrok
+ngrok http 3000
 ```
 
-獲得公網網址，可從任何裝置訪問!
+獲得 ngrok 提供的公網網址，可從任何裝置訪問!
+
+**一鍵啟動 (可選)**:
+```powershell
+# 如果腳本可用，也可使用一鍵啟動
+.\scripts\start_with_ngrok.ps1
+```
 
 #### 選項 C: 啟動管理系統
 

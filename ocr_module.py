@@ -1,6 +1,62 @@
 """
-藥單文字辨識模組 (OCR)
-使用 PaddleOCR 辨識藥單上的藥物名稱
+============================================================================
+藥物辨識系統 - OCR 文字辨識模組 (ocr_module.py)
+============================================================================
+
+【檔案功能】
+此模組使用 PaddleOCR 技術辨識藥單或藥袋上的文字，自動提取藥物名稱。
+
+【主要功能】
+1. 藥單文字辨識
+   - 使用 PaddleOCR 引擎辨識圖片中的中文文字
+   - 自動提取可能的藥物名稱
+
+2. 智慧名稱匹配
+   - 將辨識出的文字與資料庫中的藥物名稱比對
+   - 支援部分匹配 (例如: 辨識到"普拿疼"可找到"普拿疼錠")
+
+3. 置信度評估
+   - OCR 辨識信心度評分
+   - 資料庫匹配相似度評分
+   - 綜合評分排序
+
+【使用情境】
+- 辨識醫師開立的處方箋
+- 辨識藥局提供的藥袋
+- 辨識藥盒上的藥名標示
+
+【技術規格】
+- OCR 引擎: PaddleOCR 3.3.0+
+- 語言支援: 繁體中文、英文
+- 辨識方向: 支援多角度文字 (angle_cls=True)
+
+【辨識流程】
+1. 上傳藥單/藥袋圖片
+2. PaddleOCR 辨識所有文字區塊
+3. 提取可能的藥物名稱關鍵字
+4. 與資料庫比對找出匹配藥物
+5. 回傳辨識結果與信心度
+
+【使用範例】
+    ocr = DrugOCRRecognizer()
+    results = ocr.recognize_prescription("prescription.jpg")
+
+    for drug in results:
+        print(f"{drug['chinese_name']}: {drug['confidence']:.2f}%")
+
+【注意事項】
+- 需要安裝 PaddleOCR 和 PaddlePaddle 套件
+- 首次執行會自動下載 OCR 模型 (~100MB)
+- 圖片建議清晰、文字水平擺放以獲得最佳效果
+- 此模組為選用功能，可獨立於影像辨識模組使用
+
+【兼容性】
+- PaddleOCR 3.3.0 已移除 use_gpu 和 show_log 參數
+- 若使用舊版本可能需要調整初始化參數
+
+【作者】MUS_Project 團隊
+【日期】2024-2025
+============================================================================
 """
 
 from typing import List, Dict, Optional, Tuple
@@ -22,11 +78,10 @@ class DrugOCRRecognizer:
             from paddleocr import PaddleOCR
 
             # 初始化 OCR（使用繁體中文模型）
+            # 注意：PaddleOCR 3.x 版本移除了 use_gpu 和 show_log 參數
             self.ocr = PaddleOCR(
                 use_angle_cls=True,  # 使用方向分類
                 lang="ch",  # 中文模型（支援繁體）
-                use_gpu=False,  # CPU 模式（若有 GPU 可改為 True）
-                show_log=False,  # 不顯示冗長日誌
             )
             print("✅ PaddleOCR 初始化成功")
         except ImportError:
